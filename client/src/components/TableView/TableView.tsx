@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { OrgNode } from '@/api/types';
 import type { AggregatedMetrics } from '@/hooks/useAggregatedData';
 import { useDebounce } from '@/hooks/useDebounce';
-import { parseAISearch, applyParsedFilter, ParsedFilter } from '@/utils/aiSearch';
+import { parseAISearch, applyParsedFilter } from '@/utils/aiSearch';
+import type { ParsedFilter } from '@/utils/aiSearch';
 import styles from './TableView.module.scss';
 
 interface TableViewProps {
