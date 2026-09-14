@@ -1,16 +1,16 @@
-// OrgNode представляет собой структуру плоского узла, получаемую из API.
+// OrgNode represents the flat node structure received from the API.
 export interface OrgNode {
   id: string;
   name: string;
-  parentId: string | null; // null для корневого узла
+  parentId: string | null; // null for the root node
   headcount: number;
   budget: number;
-  performance: number; // Метрика эффективности от 0 до 100
-  updatedAt: string; // ISO дата-время
+  performance: number; // Performance metric ranging from 0 to 100
+  updatedAt: string; // ISO datetime string
 }
 
-// TreeNode описывает узел иерархического дерева, собираемого на клиенте.
+// TreeNode represents a hierarchical tree node constructed on the client.
 export interface TreeNode extends OrgNode {
   children: TreeNode[];
-  isExpanded?: boolean; // Флаг интерактивного состояния раскрытия ветки
+  isExpanded?: boolean; // Interactive state indicating whether the node branch is expanded
 }

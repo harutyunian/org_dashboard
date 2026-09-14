@@ -10,21 +10,21 @@ import styles from './App.module.scss';
 function App() {
   const { data: flatNodes, isLoading, error, refetch } = useOrgTree();
 
-  // 1. Инициализируем WebSockets клиент (Live-подключение)
+  // Initialize WebSockets connection for real-time updates
   const { status: wsStatus, lastUpdatedNode } = useOrgWebSocket();
 
-  // Состояние недавно измененных по сокету узлов для анимации вспышки
+  // State for flashing newly updated nodes
   const [recentUpdates, setRecentUpdates] = useState<{ [id: string]: boolean }>({});
 
-  // Эффект управления вспышкой изменений (держим ровно 1.5 секунды)
+  // Control update animation flash duration (exactly 1.5 seconds)
   useEffect(() => {
     if (lastUpdatedNode) {
       const { id } = lastUpdatedNode;
       
-      // Добавляем узел в список мигающих
-      setRecentUpdates((prev) => ({ ...prev, [id]: true }));
+      const flashTimer = setTimeout(() => {
+        setRecentUpdates((prev) => ({ ...prev, [id]: true }));
+      }, 0);
 
-      // Через 1.5 секунды убираем, плавно завершая анимацию
       const timer = setTimeout(() => {
         setRecentUpdates((prev) => {
           const next = { ...prev };
@@ -33,39 +33,44 @@ function App() {
         });
       }, 1500);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(flashTimer);
+        clearTimeout(timer);
+      };
     }
   }, [lastUpdatedNode]);
 
-  // Рассчитываем суммарные агрегированные показатели O(N)
+  // Compute high-performance aggregated metrics O(N)
   const aggregates = useAggregatedData(flatNodes);
 
-  // Состояния интерфейса
-  const [activeView, setActiveView] = useState<'tree' | 'table'>('tree'); // Для экранов < 1280px
+  // UI state
+  const [activeView, setActiveView] = useState<'tree' | 'table'>('tree');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
   const [isInitialExpandedSet, setIsInitialExpandedSet] = useState(false);
 
-  // Инициализируем дефолтно раскрытые ветки при первой загрузке
+  // Initialize default expanded branches on load
   useEffect(() => {
     if (flatNodes && flatNodes.length > 0 && !isInitialExpandedSet) {
-      setExpandedNodeIds(getDefaultExpandedIds(flatNodes));
-      setIsInitialExpandedSet(true);
+      const timer = setTimeout(() => {
+        setExpandedNodeIds(getDefaultExpandedIds(flatNodes));
+        setIsInitialExpandedSet(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [flatNodes, isInitialExpandedSet]);
 
-  // Сборка дерева для интерактивного отображения слева
+  // Rebuild the hierarchical tree for left-panel view
   const tree = useMemo(() => {
     if (!flatNodes) return [];
     return buildTree(flatNodes, expandedNodeIds);
   }, [flatNodes, expandedNodeIds]);
 
-  // Умный обработчик выделения узла (Дерево или Таблица)
+  // Handle node selection (from either Tree or Table view)
   const handleSelectNode = (id: string) => {
     setSelectedNodeId(id);
 
-    // Если узел выбран, автоматически находим всех его предков
-    // и раскрываем их, чтобы выбранный узел гарантированно был виден в дереве!
+    // Expand all ancestors programmatically to make sure the selected node is visible in the tree
     if (flatNodes) {
       const ancestors = getAncestors(flatNodes, id);
       if (ancestors.length > 0) {
@@ -78,7 +83,7 @@ function App() {
     }
   };
 
-  // Обработчик раскрытия/сворачивания веток вручную
+  // Toggle tree node expansion manually
   const handleToggleNode = (id: string) => {
     setExpandedNodeIds((prev) => {
       const next = new Set(prev);
@@ -91,69 +96,69 @@ function App() {
     });
   };
 
-  // Получаем агрегированные данные выбранного узла
+  // Retrieve metrics of the currently selected node
   const selectedAggregatedNode = useMemo(() => {
     if (!selectedNodeId || !aggregates[selectedNodeId]) return null;
     return aggregates[selectedNodeId];
   }, [selectedNodeId, aggregates]);
 
-  // 1. СОСТОЯНИЕ ЗАГРУЗКИ
+  // 1. LOADING STATE
   if (isLoading) {
     return (
       <div className={styles.centerContainer}>
         <div className={styles.spinner} />
-        <p style={{ fontWeight: 500, color: '#475569' }}>Загрузка организационной структуры...</p>
+        <p style={{ fontWeight: 500, color: '#475569' }}>Loading organizational structure...</p>
       </div>
     );
   }
 
-  // 2. СОСТОЯНИЕ ОШИБКИ
+  // 2. ERROR STATE
   if (error) {
     return (
       <div className={styles.centerContainer}>
         <div className={styles.errorCard}>
           <div className={styles.errorIcon}>⚠️</div>
-          <h2>Ошибка подключения</h2>
-          <p>Не удалось загрузить данные с сервера. Убедитесь, что бэкенд на Go запущен на порту 8080, а PostgreSQL активен.</p>
+          <h2>Connection Error</h2>
+          <p>Failed to retrieve data from server. Please ensure the Go backend and PostgreSQL database are active.</p>
           <button type="button" className={styles.retryBtn} onClick={() => refetch()}>
-            Попробовать снова
+            Retry Connection
           </button>
         </div>
       </div>
     );
   }
 
-  // 3. СОСТОЯНИЕ ПУСТОЙ БАЗЫ ДАННЫХ
+  // 3. EMPTY DATABASE STATE
   if (!flatNodes || flatNodes.length === 0) {
     return (
       <div className={styles.centerContainer}>
         <div className={styles.errorCard} style={{ borderColor: '#cbd5e1' }}>
           <div className={styles.errorIcon} style={{ color: '#94a3b8' }}>📁</div>
-          <h2>База данных пуста</h2>
-          <p>Сервер успешно ответил, но орг-структура компании не найдена.</p>
+          <h2>No Data Found</h2>
+          <p>The server responded successfully, but the organizational structure is empty.</p>
           <button type="button" className={styles.retryBtn} onClick={() => refetch()}>
-            Обновить
+            Refresh
           </button>
         </div>
       </div>
     );
   }
 
-  // Рендеринг индикатора сетевого WebSocket соединения
+  // Render network connection badge
   const renderConnectionStatus = () => {
     switch (wsStatus) {
       case 'connected':
         return (
           <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-            В сети (Live)
+            Live
           </span>
         );
       case 'connecting':
         return (
           <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
-            Подключение...
+            Connecting...
           </span>
         );
       case 'disconnected':
@@ -161,13 +166,12 @@ function App() {
         return (
           <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
-            Вне сети
+            Offline
           </span>
         );
     }
   };
 
-  // Форматирование бюджета (12 345 678 руб.)
   const formatBudget = (value: number) => {
     const formatted = new Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: 0,
@@ -176,25 +180,22 @@ function App() {
     return `${formatted} руб.`;
   };
 
-  // Класс для подсветки эффективности
   const getPerformanceClass = (perf: number) => {
     if (perf >= 80) return styles.perfGood;
     if (perf < 50) return styles.perfDanger;
     return styles.perfWarning;
   };
 
-  // Текст типа узла по его ID
   const getNodeTypeString = (id: string) => {
-    if (id === 'root') return 'Корпоративный центр';
-    if (id.startsWith('div_')) return 'Дивизион компании';
-    if (id.startsWith('dept_')) return 'Функциональный отдел';
-    if (id.startsWith('team_')) return 'Рабочая команда';
-    return 'Подразделение';
+    if (id === 'root') return 'Corporate Headquarters';
+    if (id.startsWith('div_')) return 'Company Division';
+    if (id.startsWith('dept_')) return 'Functional Department';
+    if (id.startsWith('team_')) return 'Team';
+    return 'Unit';
   };
 
   return (
     <div className={styles.appContainer}>
-      {/* Шапка дашборда */}
       <header className={styles.header}>
         <div className={styles.brand}>
           <span className={styles.logo}>📊</span>
@@ -203,13 +204,13 @@ function App() {
         <div className={styles.stats}>
           {renderConnectionStatus()}
           <span style={{ color: '#cbd5e1' }}>|</span>
-          <span>Всего подразделений: <strong>{flatNodes.length}</strong></span>
+          <span>Total Units: <strong>{flatNodes.length}</strong></span>
           <span style={{ color: '#cbd5e1' }}>|</span>
-          <span>База данных: <strong style={{ color: '#1e40af' }}>PostgreSQL</strong></span>
+          <span>Database: <strong style={{ color: '#1e40af' }}>PostgreSQL</strong></span>
         </div>
       </header>
 
-      {/* Переключатель вкладок «Дерево / Таблица» (показывается только на экранах < 1280px) */}
+      {/* Tabs segment switcher (displayed on screens < 1280px) */}
       <div className={styles.viewToggleContainer}>
         <div className={styles.segmentedControl}>
           <button
@@ -217,25 +218,23 @@ function App() {
             className={`${styles.toggleBtn} ${activeView === 'tree' ? styles.toggleBtnActive : ''}`}
             onClick={() => setActiveView('tree')}
           >
-            🌳 Иерархия (Дерево)
+            🌳 Hierarchy (Tree)
           </button>
           <button
             type="button"
             className={`${styles.toggleBtn} ${activeView === 'table' ? styles.toggleBtnActive : ''}`}
             onClick={() => setActiveView('table')}
           >
-            📊 Analytics (Таблица)
+            📊 Analytics (Table)
           </button>
         </div>
       </div>
 
-      {/* Основной контент дашборда */}
       <main className={styles.mainContent}>
-        {/* А: МАКЕТ SPLIT-VIEW (Показывается при ширине >= 1280px, выводит обе колонки рядом) */}
+        {/* DESKTOP SPLIT-VIEW LAYOUT (displayed on screens >= 1280px) */}
         <div className={styles.splitViewLayout}>
-          {/* Левая колонка: Интерактивное Дерево */}
           <div>
-            <h2 className={styles.columnTitle}>🌳 Дерево орг-структуры</h2>
+            <h2 className={styles.columnTitle}>🌳 Org-Structure Tree</h2>
             <TreeView
               tree={tree}
               selectedNodeId={selectedNodeId}
@@ -245,9 +244,8 @@ function App() {
             />
           </div>
 
-          {/* Правая колонка: Аналитическая Таблица */}
           <div>
-            <h2 className={styles.columnTitle}>📊 Аналитическая таблица с агрегацией</h2>
+            <h2 className={styles.columnTitle}>📊 Analytical Metrics Table</h2>
             <TableView
               flatNodes={flatNodes}
               aggregates={aggregates}
@@ -258,11 +256,11 @@ function App() {
           </div>
         </div>
 
-        {/* Б: МОБИЛЬНЫЙ МАКЕТ (Показывается при ширине < 1280px, выводит только выбранную вкладку) */}
+        {/* MOBILE SINGLE-COLUMN TABS LAYOUT (displayed on screens < 1280px) */}
         <div className={styles.mobileLayout}>
           {activeView === 'tree' ? (
             <div>
-              <h2 className={styles.columnTitle}>🌳 Дерево орг-структуры</h2>
+              <h2 className={styles.columnTitle}>🌳 Org-Structure Tree</h2>
               <TreeView
                 tree={tree}
                 selectedNodeId={selectedNodeId}
@@ -273,7 +271,7 @@ function App() {
             </div>
           ) : (
             <div>
-              <h2 className={styles.columnTitle}>📊 Аналитическая таблица с агрегацией</h2>
+              <h2 className={styles.columnTitle}>📊 Analytical Metrics Table</h2>
               <TableView
                 flatNodes={flatNodes}
                 aggregates={aggregates}
@@ -285,9 +283,9 @@ function App() {
           )}
         </div>
 
-        {/* НИЖНЯЯ ПАНЕЛЬ: Детальная информация по выбранному узлу с агрегированными показателями */}
+        {/* BOTTOM METRICS DETAIL PANEL */}
         <div className={styles.detailsAndSidebar}>
-          <h2 className={styles.columnTitle}>📋 Детальные агрегированные показатели</h2>
+          <h2 className={styles.columnTitle}>📋 Detailed Aggregated Metrics</h2>
           {selectedAggregatedNode ? (
             <div className={styles.detailCard}>
               <div className={styles.detailHeader}>
@@ -296,29 +294,26 @@ function App() {
               </div>
 
               <div className={styles.metricsGrid}>
-                {/* Метрика 1: Суммарный штат */}
                 <div className={styles.metricItem}>
                   <div className={styles.metricIcon}>👥</div>
                   <div className={styles.metricContent}>
-                    <span className={styles.label}>Штат подразделения + всех потомков</span>
-                    <span className={styles.value}>{selectedAggregatedNode.totalHeadcount} человек</span>
+                    <span className={styles.label}>Headcount (Subtree cumulative)</span>
+                    <span className={styles.value}>{selectedAggregatedNode.totalHeadcount} people</span>
                   </div>
                 </div>
 
-                {/* Метрика 2: Суммарный бюджет */}
                 <div className={styles.metricItem}>
                   <div className={styles.metricIcon}>💵</div>
                   <div className={styles.metricContent}>
-                    <span className={styles.label}>Бюджет суммарный (с потомками)</span>
+                    <span className={styles.label}>Budget (Subtree cumulative)</span>
                     <span className={styles.value}>{formatBudget(selectedAggregatedNode.totalBudget)}</span>
                   </div>
                 </div>
 
-                {/* Метрика 3: Взвешенная эффективность */}
                 <div className={styles.metricItem}>
                   <div className={styles.metricIcon}>📈</div>
                   <div className={styles.metricContent}>
-                    <span className={styles.label}>Взвешенная эффективность (с потомками)</span>
+                    <span className={styles.label}>Weighted Efficiency (Subtree cumulative)</span>
                     <span className={`${styles.value} ${getPerformanceClass(selectedAggregatedNode.averagePerformance)}`}>
                       {selectedAggregatedNode.averagePerformance}%
                     </span>
@@ -329,9 +324,9 @@ function App() {
           ) : (
             <div className={styles.placeholderCard}>
               <div className={styles.placeholderIcon}>🖱️</div>
-              <h3>Подразделение не выбрано</h3>
+              <h3>No Unit Selected</h3>
               <p>
-                Кликните на любое подразделение в Дереве или Таблице выше, чтобы увидеть детальную статистику сотрудников, бюджетов и средневзвешенной эффективности с учетом всех дочерних команд.
+                Click any organizational unit in the Tree or Table view above to see detailed aggregated stats representing personnel headcount, budgets, and weighted performance calculated dynamically with all descendant nodes.
               </p>
             </div>
           )}

@@ -18,7 +18,6 @@ type SortField = 'name' | 'level' | 'totalHeadcount' | 'totalBudget' | 'averageP
 type SortOrder = 'asc' | 'desc';
 
 export const TableView: React.FC<TableViewProps> = ({
-  flatNodes: _flatNodes,
   aggregates,
   selectedNodeId,
   onSelectNode,
@@ -27,39 +26,37 @@ export const TableView: React.FC<TableViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 250);
 
-  // Состояние сортировки
+  // Sorting state
   const [sortField, setSortField] = useState<SortField>('level');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  // Клавиатурная навигация: индекс сфокусированной строки
+  // Keyboard navigation state
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const tableRef = useRef<HTMLDivElement>(null);
 
-  // Превращаем карту агрегатов в плоский массив для отображения и фильтрации
+  // Flatten aggregates map into array for filtering and display
   const dataList = useMemo(() => {
     return Object.values(aggregates);
   }, [aggregates]);
 
-  // Вычисляем, применился ли умный AI-фильтр на основе поискового запроса
+  // Parse natural language queries for AI search
   const activeAIFilter = useMemo(() => {
     return parseAISearch(debouncedSearch);
   }, [debouncedSearch]);
 
-  // Фильтрация данных по названию ИЛИ умному AI-фильтру с учетом дебаунса
+  // Filter items by natural language parsed conditions or by substring search
   const filteredData = useMemo(() => {
     if (!debouncedSearch.trim()) return dataList;
 
-    // Если распарсился умный фильтр, применяем его
     if (activeAIFilter) {
       return dataList.filter((item) => applyParsedFilter(item, activeAIFilter));
     }
 
-    // Иначе откатываемся на стандартный текстовый поиск по названию
     const lowerSearch = debouncedSearch.toLowerCase();
     return dataList.filter((item) => item.name.toLowerCase().includes(lowerSearch));
   }, [dataList, debouncedSearch, activeAIFilter]);
 
-  // Сортировка отфильтрованных данных
+  // Sort filtered data array
   const sortedData = useMemo(() => {
     const sorted = [...filteredData];
     sorted.sort((a, b) => {
@@ -79,22 +76,28 @@ export const TableView: React.FC<TableViewProps> = ({
     return sorted;
   }, [filteredData, sortField, sortOrder]);
 
-  // Синхронизируем клавиатурный фокус с внешним выделением
+  // Synchronize keyboard focus index with row selection
   useEffect(() => {
     if (selectedNodeId) {
       const index = sortedData.findIndex((item) => item.id === selectedNodeId);
       if (index !== -1) {
-        setFocusedIndex(index);
+        const timer = setTimeout(() => {
+          setFocusedIndex(index);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, [selectedNodeId, sortedData]);
 
-  // Сбрасываем фокус при изменении фильтрации
+  // Reset keyboard focus index on filtering changes
   useEffect(() => {
-    setFocusedIndex(-1);
+    const timer = setTimeout(() => {
+      setFocusedIndex(-1);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [debouncedSearch]);
 
-  // Обработчик нажатия клавиш для навигации
+  // Handle keyboard events on the table wrapper
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (sortedData.length === 0) return;
 
@@ -120,12 +123,13 @@ export const TableView: React.FC<TableViewProps> = ({
         setFocusedIndex(0);
         scrollToRow(0);
         break;
-      case 'End':
+      case 'End': {
         e.preventDefault();
         const lastIdx = sortedData.length - 1;
         setFocusedIndex(lastIdx);
         scrollToRow(lastIdx);
         break;
+      }
       case 'Enter':
       case ' ':
         e.preventDefault();
@@ -138,7 +142,7 @@ export const TableView: React.FC<TableViewProps> = ({
     }
   };
 
-  // Вспомогательная функция прокрутки таблицы
+  // Scroll target row into view during keyboard navigation
   const scrollToRow = (index: number) => {
     const tableWrapper = tableRef.current;
     if (!tableWrapper) return;
@@ -160,13 +164,21 @@ export const TableView: React.FC<TableViewProps> = ({
     }
   };
 
-  // Обработчик изменения сортировки
-  const handleSort = (field: SortField) => {
+  // Sort by field on single click
+  const handleSortClick = (field: SortField) => {
+    if (sortField !== field) {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Reverse sort order on double click
+  const handleSortDoubleClick = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortOrder('asc');
+      setSortOrder('desc');
     }
   };
 
@@ -186,7 +198,7 @@ export const TableView: React.FC<TableViewProps> = ({
     }
   };
 
-  // Форматирование бюджета строго по ТЗ: 12 345 678 руб.
+  // Format budget values (e.g., 12 345 678 руб.)
   const formatBudget = (value: number) => {
     const formatted = new Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: 0,
@@ -195,19 +207,19 @@ export const TableView: React.FC<TableViewProps> = ({
     return `${formatted} руб.`;
   };
 
-  // Текст подсказки примененного умного AI-фильтра
+  // Helper text badge for active parsed AI filter
   const renderAIFilterBadge = (filter: ParsedFilter) => {
-    let fieldText = 'Бюджет';
+    let fieldText = 'Budget';
     let valueText = filter.value.toString();
 
     if (filter.field === 'averagePerformance') {
-      fieldText = 'Эффективность';
+      fieldText = 'Performance';
       valueText = `${filter.value}%`;
     } else if (filter.field === 'totalHeadcount') {
-      fieldText = 'Численность персонала';
-      valueText = `${filter.value} чел.`;
+      fieldText = 'Headcount';
+      valueText = `${filter.value} people`;
     } else if (filter.field === 'totalBudget') {
-      fieldText = 'Бюджет суммарный';
+      fieldText = 'Total Budget';
       valueText = formatBudget(filter.value);
     }
 
@@ -225,12 +237,11 @@ export const TableView: React.FC<TableViewProps> = ({
         fontWeight: 500,
         marginTop: '4px'
       }}>
-        <span>💡 Применен умный фильтр: <strong>{fieldText} {filter.operator} {valueText}</strong></span>
+        <span>💡 Applied AI Filter: <strong>{fieldText} {filter.operator} {valueText}</strong></span>
       </div>
     );
   };
 
-  // Стиль для перформанса
   const getPerfClassAndDot = (perf: number) => {
     if (perf >= 80) return { textClass: styles.perfGood, dotClass: styles.dotGood, text: 'Высокая' };
     if (perf < 50) return { textClass: styles.perfDanger, dotClass: styles.dotDanger, text: 'Низкая' };
@@ -239,63 +250,85 @@ export const TableView: React.FC<TableViewProps> = ({
 
   return (
     <div className={styles.tableContainer}>
-      {/* Контролы таблицы */}
       <div className={styles.tableControls}>
         <div className={styles.searchWrapper}>
           <span className={styles.searchIcon}>🔍</span>
           <input
             type="text"
             className={styles.searchInput}
-            placeholder='Поиск ("отдел разработки" или "бюджет > 500k", "perf >= 80")'
+            placeholder='Search (e.g., "backend", "budget > 500k", "perf >= 80")'
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className={styles.rowsCount}>
-          Найдено записей: <strong>{filteredData.length}</strong>
+          Records found: <strong>{filteredData.length}</strong>
         </div>
       </div>
 
-      {/* Выводим бейдж примененного AI-фильтра, если он распознан */}
       {activeAIFilter && renderAIFilterBadge(activeAIFilter)}
 
-      {/* Сама аналитическая таблица с поддержкой фокуса клавиатуры */}
       <div
         ref={tableRef}
         className={styles.responsiveTableWrapper}
         tabIndex={0}
         onKeyDown={handleKeyDown}
-        aria-label="Аналитическая таблица"
+        aria-label="Analytical metrics table"
         style={{ outline: 'none' }}
       >
         <table className={styles.analyticsTable}>
           <thead>
             <tr>
-              <th className={styles.th} onClick={() => handleSort('name')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('name')}
+                onDoubleClick={() => handleSortDoubleClick('name')}
+                title="Single click to sort, double click to reverse"
+              >
                 Подразделение
                 {sortField === 'name' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('level')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('level')}
+                onDoubleClick={() => handleSortDoubleClick('level')}
+                title="Single click to sort, double click to reverse"
+              >
                 Уровень
                 {sortField === 'level' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('totalHeadcount')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('totalHeadcount')}
+                onDoubleClick={() => handleSortDoubleClick('totalHeadcount')}
+                title="Single click to sort, double click to reverse"
+              >
                 Всего сотрудников
                 {sortField === 'totalHeadcount' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('totalBudget')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('totalBudget')}
+                onDoubleClick={() => handleSortDoubleClick('totalBudget')}
+                title="Single click to sort, double click to reverse"
+              >
                 Бюджет суммарный
                 {sortField === 'totalBudget' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('averagePerformance')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('averagePerformance')}
+                onDoubleClick={() => handleSortDoubleClick('averagePerformance')}
+                title="Single click to sort, double click to reverse"
+              >
                 Средняя эффективность
                 {sortField === 'averagePerformance' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>

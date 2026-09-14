@@ -2,14 +2,13 @@ package model
 
 import "time"
 
-// OrgNode представляет собой узел организационной структуры компании.
-// Это может быть дивизион, отдел или конкретная команда.
+// OrgNode represents a node in the organizational structure.
 type OrgNode struct {
 	ID          string    `json:"id" db:"id"`
 	Name        string    `json:"name" db:"name"`
-	ParentID    *string   `json:"parentId" db:"parent_id"` // Указатель для поддержки NULL значений в БД
+	ParentID    *string   `json:"parentId" db:"parent_id"`
 	Headcount   int       `json:"headcount" db:"headcount"`
-	Budget      float64   `json:"budget" db:"budget"` // Храним бюджет как float64
-	Performance int       `json:"performance" db:"performance"` // Метрика эффективности от 0 до 100
+	Budget      float64   `json:"budget" db:"budget"`
+	Performance int       `json:"performance" db:"performance"` // Score from 0 to 100
 	UpdatedAt   time.Time `json:"updatedAt" db:"updated_at"`
 }

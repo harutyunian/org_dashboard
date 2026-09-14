@@ -10,7 +10,7 @@ import (
 	"test_task/backend/internal/repository"
 )
 
-// OrgService описывает интерфейс бизнес-логики управления орг-структурой.
+// OrgService defines the business logic for managing the organizational structure.
 type OrgService interface {
 	InitSchema(ctx context.Context) error
 	SeedDataIfEmpty(ctx context.Context) error
@@ -18,13 +18,13 @@ type OrgService interface {
 	UpdateNode(ctx context.Context, id string, headcount int, budget float64, performance int) (*model.OrgNode, error)
 }
 
-// OrgServiceImpl — реализация интерфейса OrgService.
+// OrgServiceImpl implements the OrgService interface.
 type OrgServiceImpl struct {
 	repo repository.Repository
-	db   *sql.DB // Нужен напрямую для выполнения авто-миграции схемы таблицы
+	db   *sql.DB
 }
 
-// NewOrgService инициализирует новый сервис орг-структуры.
+// NewOrgService creates a new OrgServiceImpl instance.
 func NewOrgService(repo repository.Repository, db *sql.DB) *OrgServiceImpl {
 	return &OrgServiceImpl{
 		repo: repo,
@@ -32,7 +32,7 @@ func NewOrgService(repo repository.Repository, db *sql.DB) *OrgServiceImpl {
 	}
 }
 
-// InitSchema создает таблицу org_nodes, если она отсутствует в БД.
+// InitSchema creates the org_nodes table if it does not exist.
 func (s *OrgServiceImpl) InitSchema(ctx context.Context) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS org_nodes (
@@ -53,17 +53,17 @@ func (s *OrgServiceImpl) InitSchema(ctx context.Context) error {
 	return nil
 }
 
-// GetOrgTree возвращает плоский массив всех узлов орг-структуры.
+// GetOrgTree retrieves all organizational nodes.
 func (s *OrgServiceImpl) GetOrgTree(ctx context.Context) ([]*model.OrgNode, error) {
 	return s.repo.GetAllNodes(ctx)
 }
 
-// UpdateNode обновляет показатели узла.
+// UpdateNode updates the metrics of a node.
 func (s *OrgServiceImpl) UpdateNode(ctx context.Context, id string, headcount int, budget float64, performance int) (*model.OrgNode, error) {
 	return s.repo.UpdateNode(ctx, id, headcount, budget, performance)
 }
 
-// SeedDataIfEmpty проверяет наполненность БД и генерирует 42 реалистичных узла в иерархии.
+// SeedDataIfEmpty populates the database with initial nodes if empty.
 func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 	empty, err := s.repo.IsEmpty(ctx)
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 	}
 
 	if !empty {
-		return nil // БД уже наполнена, пропускаем сидинг
+		return nil
 	}
 
 	fmt.Println("Database is empty. Generating mock organizational structure...")
@@ -79,12 +79,11 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	now := time.Now()
 
-	// 1. Корень орг-структуры (Level 0)
 	root := &model.OrgNode{
 		ID:          "root",
 		Name:        "Группа Компаний ПУЛЬС",
 		ParentID:    nil,
-		Headcount:   25, // Штаб-квартира
+		Headcount:   25,
 		Budget:      5000000.00,
 		Performance: 88,
 		UpdatedAt:   now,
@@ -93,12 +92,10 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 	var nodes []*model.OrgNode
 	nodes = append(nodes, root)
 
-	// Вспомогательная функция генерации случайных чисел в диапазоне
 	randBetween := func(min, max int) int {
 		return r.Intn(max-min+1) + min
 	}
 
-	// 2. Дивизионы (Level 1) — 3 дивизиона
 	divisions := []struct {
 		id   string
 		name string
@@ -120,7 +117,6 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 		})
 	}
 
-	// 3. Отделы (Level 2) — привязаны к дивизионам (всего 9 отделов)
 	departments := map[string][]struct {
 		id   string
 		name string
@@ -142,12 +138,10 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 		},
 	}
 
-	// 4. Команды (Level 3) — привязаны к отделам (всего 29 команд)
 	teams := map[string][]struct {
 		id   string
 		name string
 	}{
-		// Разработка
 		"dept_backend": {
 			{"team_be_core", "Команда Ядра API"},
 			{"team_be_data", "Команда Обработки Данных"},
@@ -168,7 +162,6 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 			{"team_devops_k8s", "Группа Kubernetes и Cloud"},
 			{"team_devops_cicd", "Группа CI/CD Автоматизации"},
 		},
-		// Продукт и Дизайн
 		"dept_pm": {
 			{"team_pm_growth", "Команда Роста и Метрик (Growth)"},
 			{"team_pm_core", "Команда Основного Продукта"},
@@ -183,7 +176,6 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 			{"team_res_interviews", "Группа Глубинных Интервью"},
 			{"team_res_analytics", "Группа Количественной Аналитики"},
 		},
-		// Маркетинг и Продажи
 		"dept_sales": {
 			{"team_sales_enterprise", "Группа Крупных Клиентов (Enterprise)"},
 			{"team_sales_smb", "Группа Среднего и Малого Бизнеса"},
@@ -199,7 +191,6 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 		},
 	}
 
-	// Генерируем отделы
 	for divID, depts := range departments {
 		for _, dept := range depts {
 			nodes = append(nodes, &model.OrgNode{
@@ -212,7 +203,6 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 				UpdatedAt:   now,
 			})
 
-			// Генерируем команды для текущего отдела
 			if list, ok := teams[dept.id]; ok {
 				for _, team := range list {
 					nodes = append(nodes, &model.OrgNode{
@@ -221,7 +211,7 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 						ParentID:    &dept.id,
 						Headcount:   randBetween(3, 8),
 						Budget:      float64(randBetween(150000, 450000)),
-						Performance: randBetween(40, 100), // Команды имеют более широкий разброс эффективности
+						Performance: randBetween(40, 100),
 						UpdatedAt:   now,
 					})
 				}
@@ -229,9 +219,6 @@ func (s *OrgServiceImpl) SeedDataIfEmpty(ctx context.Context) error {
 		}
 	}
 
-	// Общее число сгенерированных узлов:
-	// 1 (Корень) + 3 (Дивизиона) + 9 (Отделов) + 29 (Команд) = 42 узла.
-	// Это идеально соответствует ТЗ ("Минимум 40 узлов, не менее трех уровней вложенности")
 	err = s.repo.SeedNodes(ctx, nodes)
 	if err != nil {
 		return fmt.Errorf("failed to seed organization nodes: %w", err)
