@@ -1,13 +1,11 @@
 # Зависимости Node.js
 node_modules/
 .npm
-package-lock.json
 
 # Сборка и статика фронтенда
 dist/
 client/dist/
 client/node_modules/
-client/package-lock.json
 .tmp/
 *.tsbuildinfo
 
@@ -28,3 +26,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Папки служебных ИИ-инструментов разработки
+.claude/
+.playwright/

@@ -1,0 +1,53 @@
+@use './variables' as *;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: $font-family;
+  background-color: $bg-app;
+  color: $text-secondary;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a {
+  color: $primary-color;
+  text-decoration: none;
+  transition: $transition-fast;
+  
+  &:hover {
+    color: $primary-dark;
+  }
+}
+
+// Красивые кастомные скроллбары для прокрутки таблиц и списков
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; // slate-300
+  border-radius: 4px;
+  transition: $transition-fast;
+  
+  &:hover {
+    background: #94a3b8; // slate-400
+  }
+}

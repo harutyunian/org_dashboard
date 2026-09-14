@@ -1,0 +1,209 @@
+@use '@/styles/variables' as *;
+
+.tableContainer {
+  background-color: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $box-shadow-md;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+// Панель управления (Поиск и статистика)
+.tableControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+}
+
+.searchWrapper {
+  position: relative;
+  flex-grow: 1;
+  max-width: 400px;
+  min-width: 250px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 16px 10px 40px; // Место для иконки слева
+  font-size: 14px;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  outline: none;
+  background-color: $bg-app;
+  color: $text-primary;
+  transition: all $transition-fast;
+
+  &:focus {
+    border-color: $primary-color;
+    background-color: $bg-card;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: $text-muted;
+  pointer-events: none;
+}
+
+.rowsCount {
+  font-size: 13px;
+  color: $text-secondary;
+  font-weight: 500;
+}
+
+// Обертка для таблицы с поддержкой скролла
+.responsiveTableWrapper {
+  overflow-x: auto;
+  border-radius: $border-radius-md;
+  border: 1px solid $border-color;
+  max-height: calc(100vh - 240px);
+}
+
+.analyticsTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.th {
+  background-color: #f8fafc; // slate-50
+  padding: $spacing-md;
+  font-weight: 600;
+  color: $text-primary;
+  border-bottom: 1px solid $border-color;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: #f1f5f9; // slate-100
+  }
+}
+
+.sortIndicator {
+  margin-left: 6px;
+  font-size: 11px;
+  color: $primary-color;
+  display: inline-block;
+}
+
+.td {
+  padding: $spacing-md;
+  border-bottom: 1px solid rgba($border-color, 0.5);
+  color: $text-secondary;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.tr {
+  transition: background-color $transition-fast;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $bg-app;
+  }
+}
+
+// Стилизация выделенной строки (выбранного подразделения)
+.trSelected {
+  background-color: $primary-light !important;
+  
+  .td {
+    color: $text-primary;
+  }
+}
+
+// Стилизация строки под фокусом клавиатуры (навигация стрелочками)
+.trFocused {
+  background-color: rgba($primary-color, 0.05);
+  box-shadow: inset 0 0 0 1px rgba($primary-color, 0.4);
+  outline: none;
+}
+
+// Класс для плавной вспышки при live-обновлениях из WebSockets
+.rowFlash {
+  animation: flashUpdate 1.5s ease-out;
+}
+
+@keyframes flashUpdate {
+  0% {
+    background-color: rgba($primary-color, 0.25);
+    box-shadow: inset 0 0 0 1px rgba($primary-color, 0.4);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px transparent;
+  }
+}
+
+// Бейджи уровней подразделений
+.levelBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.level0 {
+  background-color: #ffe4e6; // rose-100
+  color: #9f1239; // rose-800
+}
+
+.level1 {
+  background-color: #dbeafe; // blue-100
+  color: #1e40af; // blue-800
+}
+
+.level2 {
+  background-color: #fef9c3; // yellow-100
+  color: #854d0e; // yellow-800
+}
+
+.level3 {
+  background-color: #f3f4f6; // gray-100
+  color: #374151; // gray-800
+}
+
+// Индикатор эффективности в таблице
+.perfIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  
+  &.good { color: $perf-good; }
+  &.warning { color: $perf-warning; }
+  &.danger { color: $perf-danger; }
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  
+  &.good { background-color: $perf-good; }
+  &.warning { background-color: $perf-warning; }
+  &.danger { background-color: $perf-danger; }
+}
+
+// Плейсхолдер пустого результата фильтрации
+.noResults {
+  text-align: center;
+  padding: $spacing-xl;
+  color: $text-muted;
+  font-size: 14px;
+}
