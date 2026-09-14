@@ -84,20 +84,22 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
         </div>
       </div>
 
-      {/* Рекурсивный вызов TreeNodeItem для дочерних веток */}
-      {hasChildren && node.isExpanded && (
-        <ul className={styles.childrenContainer}>
-          {node.children.map((child) => (
-            <TreeNodeItem
-              key={child.id}
-              node={child}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={onSelectNode}
-              onToggleNode={onToggleNode}
-              recentUpdates={recentUpdates}
-            />
-          ))}
-        </ul>
+      {/* Рекурсивный вызов TreeNodeItem для дочерних веток с поддержкой плавной CSS-анимации (Шаг 3 ТЗ) */}
+      {hasChildren && (
+        <div className={`${styles.childrenWrapper} ${node.isExpanded ? styles.childrenExpanded : ''}`}>
+          <ul className={styles.childrenContainer}>
+            {node.children.map((child) => (
+              <TreeNodeItem
+                key={child.id}
+                node={child}
+                selectedNodeId={selectedNodeId}
+                onSelectNode={onSelectNode}
+                onToggleNode={onToggleNode}
+                recentUpdates={recentUpdates}
+              />
+            ))}
+          </ul>
+        </div>
       )}
     </li>
   );

@@ -18,7 +18,6 @@ type SortField = 'name' | 'level' | 'totalHeadcount' | 'totalBudget' | 'averageP
 type SortOrder = 'asc' | 'desc';
 
 export const TableView: React.FC<TableViewProps> = ({
-  flatNodes: _flatNodes,
   aggregates,
   selectedNodeId,
   onSelectNode,
@@ -84,14 +83,20 @@ export const TableView: React.FC<TableViewProps> = ({
     if (selectedNodeId) {
       const index = sortedData.findIndex((item) => item.id === selectedNodeId);
       if (index !== -1) {
-        setFocusedIndex(index);
+        const timer = setTimeout(() => {
+          setFocusedIndex(index);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, [selectedNodeId, sortedData]);
 
   // Сбрасываем фокус при изменении фильтрации
   useEffect(() => {
-    setFocusedIndex(-1);
+    const timer = setTimeout(() => {
+      setFocusedIndex(-1);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [debouncedSearch]);
 
   // Обработчик нажатия клавиш для навигации
@@ -120,12 +125,13 @@ export const TableView: React.FC<TableViewProps> = ({
         setFocusedIndex(0);
         scrollToRow(0);
         break;
-      case 'End':
+      case 'End': {
         e.preventDefault();
         const lastIdx = sortedData.length - 1;
         setFocusedIndex(lastIdx);
         scrollToRow(lastIdx);
         break;
+      }
       case 'Enter':
       case ' ':
         e.preventDefault();
@@ -160,13 +166,21 @@ export const TableView: React.FC<TableViewProps> = ({
     }
   };
 
-  // Обработчик изменения сортировки
-  const handleSort = (field: SortField) => {
+  // Обработчик одиночного клика — сортировка по выбранной колонке (Шаг 2 ТЗ)
+  const handleSortClick = (field: SortField) => {
+    if (sortField !== field) {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Обработчик двойного клика — обратное направление сортировки (Шаг 2 ТЗ)
+  const handleSortDoubleClick = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortOrder('asc');
+      setSortOrder('desc');
     }
   };
 
@@ -271,31 +285,56 @@ export const TableView: React.FC<TableViewProps> = ({
         <table className={styles.analyticsTable}>
           <thead>
             <tr>
-              <th className={styles.th} onClick={() => handleSort('name')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('name')}
+                onDoubleClick={() => handleSortDoubleClick('name')}
+                title="Одинарный клик — сортировка, двойной клик — реверс"
+              >
                 Подразделение
                 {sortField === 'name' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('level')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('level')}
+                onDoubleClick={() => handleSortDoubleClick('level')}
+                title="Одинарный клик — сортировка, двойной клик — реверс"
+              >
                 Уровень
                 {sortField === 'level' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('totalHeadcount')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('totalHeadcount')}
+                onDoubleClick={() => handleSortDoubleClick('totalHeadcount')}
+                title="Одинарный клик — сортировка, двойной клик — реверс"
+              >
                 Всего сотрудников
                 {sortField === 'totalHeadcount' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('totalBudget')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('totalBudget')}
+                onDoubleClick={() => handleSortDoubleClick('totalBudget')}
+                title="Одинарный клик — сортировка, двойной клик — реверс"
+              >
                 Бюджет суммарный
                 {sortField === 'totalBudget' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={styles.th} onClick={() => handleSort('averagePerformance')}>
+              <th
+                className={styles.th}
+                onClick={() => handleSortClick('averagePerformance')}
+                onDoubleClick={() => handleSortDoubleClick('averagePerformance')}
+                title="Одинарный клик — сортировка, двойной клик — реверс"
+              >
                 Средняя эффективность
                 {sortField === 'averagePerformance' && (
                   <span className={styles.sortIndicator}>{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>

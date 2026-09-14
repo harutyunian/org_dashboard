@@ -179,3 +179,28 @@
   border-left: 1px dashed $border-color;
   margin-left: 12px; // Красивая осевая линия структуры
 }
+
+// Контейнер-оболочка для плавной CSS-анимации разворачивания (Шаг 3 ТЗ)
+.childrenWrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease-out;
+  overflow: hidden;
+
+  // Обязательно для правильного схлопывания контента в гридах
+  & > ul {
+    min-height: 0;
+  }
+}
+
+// Класс развернутого состояния
+.childrenExpanded {
+  grid-template-rows: 1fr;
+}
+
+// Уважение режима уменьшения движения операционной системы пользователя (Шаг 3 ТЗ)
+@media (prefers-reduced-motion: reduce) {
+  .childrenWrapper {
+    transition: none !important;
+  }
+}

@@ -21,8 +21,10 @@ function App() {
     if (lastUpdatedNode) {
       const { id } = lastUpdatedNode;
       
-      // Добавляем узел в список мигающих
-      setRecentUpdates((prev) => ({ ...prev, [id]: true }));
+      // Добавляем узел в список мигающих во фрейме деферирования во избежание каскадных рендеров
+      const flashTimer = setTimeout(() => {
+        setRecentUpdates((prev) => ({ ...prev, [id]: true }));
+      }, 0);
 
       // Через 1.5 секунды убираем, плавно завершая анимацию
       const timer = setTimeout(() => {
@@ -33,7 +35,10 @@ function App() {
         });
       }, 1500);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(flashTimer);
+        clearTimeout(timer);
+      };
     }
   }, [lastUpdatedNode]);
 
@@ -49,8 +54,11 @@ function App() {
   // Инициализируем дефолтно раскрытые ветки при первой загрузке
   useEffect(() => {
     if (flatNodes && flatNodes.length > 0 && !isInitialExpandedSet) {
-      setExpandedNodeIds(getDefaultExpandedIds(flatNodes));
-      setIsInitialExpandedSet(true);
+      const timer = setTimeout(() => {
+        setExpandedNodeIds(getDefaultExpandedIds(flatNodes));
+        setIsInitialExpandedSet(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [flatNodes, isInitialExpandedSet]);
 
