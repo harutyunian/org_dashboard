@@ -1,0 +1,30 @@
+# Зависимости Node.js
+node_modules/
+.npm
+package-lock.json
+
+# Сборка и статика фронтенда
+dist/
+client/dist/
+client/node_modules/
+client/package-lock.json
+.tmp/
+*.tsbuildinfo
+
+# Бинарные файлы бэкенда (Go)
+backend/server
+backend/server.exe
+
+# Временные файлы операционной системы
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Локальные файлы конфигурации окружения (secrets)
+.env
+.env.local
+.env.*.local
