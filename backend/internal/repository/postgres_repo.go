@@ -8,8 +8,7 @@ import (
 	"test_task/backend/internal/model"
 )
 
-// Repository описывает интерфейс взаимодействия со слоем хранения данных.
-// Любая СУБД должна реализовывать эти методы.
+// Repository defines the interface for data storage interactions.
 type Repository interface {
 	GetAllNodes(ctx context.Context) ([]*model.OrgNode, error)
 	GetNodeByID(ctx context.Context, id string) (*model.OrgNode, error)
@@ -18,17 +17,17 @@ type Repository interface {
 	IsEmpty(ctx context.Context) (bool, error)
 }
 
-// PostgresRepository — реализация интерфейса Repository для работы с СУБД PostgreSQL.
+// PostgresRepository implements the Repository interface using PostgreSQL.
 type PostgresRepository struct {
 	db *sql.DB
 }
 
-// NewPostgresRepository инициализирует новый экземпляр репозитория PostgreSQL.
+// NewPostgresRepository creates a new PostgresRepository instance.
 func NewPostgresRepository(db *sql.DB) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
 
-// GetAllNodes возвращает плоский массив всех узлов орг-структуры из БД.
+// GetAllNodes returns a flat array of all organizational nodes.
 func (r *PostgresRepository) GetAllNodes(ctx context.Context) ([]*model.OrgNode, error) {
 	query := `
 		SELECT id, name, parent_id, headcount, budget, performance, updated_at 
@@ -47,7 +46,7 @@ func (r *PostgresRepository) GetAllNodes(ctx context.Context) ([]*model.OrgNode,
 		err := rows.Scan(
 			&node.ID,
 			&node.Name,
-			&node.ParentID, // Автоматически замаппит NULL в nil-указатель
+			&node.ParentID,
 			&node.Headcount,
 			&node.Budget,
 			&node.Performance,
@@ -66,7 +65,7 @@ func (r *PostgresRepository) GetAllNodes(ctx context.Context) ([]*model.OrgNode,
 	return nodes, nil
 }
 
-// GetNodeByID получает конкретный узел по его уникальному ID.
+// GetNodeByID retrieves a node by its ID.
 func (r *PostgresRepository) GetNodeByID(ctx context.Context, id string) (*model.OrgNode, error) {
 	query := `
 		SELECT id, name, parent_id, headcount, budget, performance, updated_at 
@@ -94,8 +93,7 @@ func (r *PostgresRepository) GetNodeByID(ctx context.Context, id string) (*model
 	return &node, nil
 }
 
-// UpdateNode обновляет показатели узла и возвращает обновленное состояние.
-// Это понадобится для Live-обновлений (Шаг 3).
+// UpdateNode updates the metrics of a node and returns the updated state.
 func (r *PostgresRepository) UpdateNode(ctx context.Context, id string, headcount int, budget float64, performance int) (*model.OrgNode, error) {
 	query := `
 		UPDATE org_nodes
@@ -125,7 +123,7 @@ func (r *PostgresRepository) UpdateNode(ctx context.Context, id string, headcoun
 	return &node, nil
 }
 
-// IsEmpty проверяет, пуста ли таблица org_nodes.
+// IsEmpty checks if the org_nodes table is empty.
 func (r *PostgresRepository) IsEmpty(ctx context.Context) (bool, error) {
 	var count int
 	query := "SELECT COUNT(*) FROM org_nodes"
@@ -136,7 +134,7 @@ func (r *PostgresRepository) IsEmpty(ctx context.Context) (bool, error) {
 	return count == 0, nil
 }
 
-// SeedNodes наполняет базу данных начальным набором узлов (mock-данными) в рамках транзакции.
+// SeedNodes populates the database with initial nodes.
 func (r *PostgresRepository) SeedNodes(ctx context.Context, nodes []*model.OrgNode) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {

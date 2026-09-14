@@ -4,7 +4,7 @@ import type { OrgNode } from '@/api/types';
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected';
 
-// Интерфейс получаемого от сокета сообщения
+// Interface for the WebSocket patch message
 interface WSPatchMessage {
   id: string;
   headcount: number;
@@ -14,9 +14,9 @@ interface WSPatchMessage {
 }
 
 /**
- * useOrgWebSocket — кастомный хук для поддержки постоянного WebSocket-соединения с бэкендом.
- * Обновляет кэш React Query «на месте» при получении точечных патчей изменений и управляет
- * механизмом авто-подключения с экспоненциальной задержкой.
+ * useOrgWebSocket - Custom hook to manage persistent WebSocket connection with the backend.
+ * Performs in-place React Query cache updates on live patches and manages reconnection
+ * using an exponential backoff strategy.
  */
 export function useOrgWebSocket() {
   const queryClient = useQueryClient();
@@ -24,8 +24,8 @@ export function useOrgWebSocket() {
   const [lastUpdatedNode, setLastUpdatedNode] = useState<{ id: string; timestamp: number } | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectDelayRef = useRef<number>(1000); // Стартовая задержка переподключения (1 сек)
-  const maxReconnectDelay = 16000;                // Максимальная задержка (16 сек)
+  const reconnectDelayRef = useRef<number>(1000); // Initial reconnection delay (1s)
+  const maxReconnectDelay = 16000;                // Maximum reconnection delay (16s)
 
   useEffect(() => {
     let isMounted = true;
@@ -33,9 +33,9 @@ export function useOrgWebSocket() {
     function connect() {
       if (!isMounted) return;
 
-      // Динамически вычисляем адрес веб-сокетов:
-      // В продакшене (на порту 80/443) используем относительный хост для переносимости контейнера.
-      // В dev-режиме Vite (порт 5173) стучимся напрямую на порт Go-сервера 8080.
+      // Dynamically resolve WebSocket connection URL:
+      // In production, use the relative host to keep the container portable.
+      // In Vite dev mode (port 5173), connect directly to the Go backend on port 8080.
       let wsUrl = import.meta.env.VITE_WS_URL;
       if (!wsUrl) {
         const isProdPort = window.location.port === '80' || window.location.port === '' || window.location.port === '443';
@@ -54,7 +54,7 @@ export function useOrgWebSocket() {
       socket.onopen = () => {
         if (!isMounted) return;
         setStatus('connected');
-        reconnectDelayRef.current = 1000; // Сбрасываем задержку при успешном коннекте
+        reconnectDelayRef.current = 1000; // Reset reconnection delay upon successful connection
         logWS('WebSocket connection established successfully!');
       };
 
@@ -65,14 +65,13 @@ export function useOrgWebSocket() {
           const patch: WSPatchMessage = JSON.parse(event.data);
           logWS('Received live patch: ' + JSON.stringify(patch));
 
-          // 1. Фиксируем время изменения для красивого fade-out эффекта на UI
+          // Record modification timestamp to trigger fade-out UI animation
           setLastUpdatedNode({ id: patch.id, timestamp: Date.now() });
 
-          // 2. Умное обновление кэша React Query без полного рефетча!
+          // Localized query cache update without triggering a full refetch
           queryClient.setQueryData<OrgNode[]>(['org-tree'], (oldData) => {
             if (!oldData) return oldData;
             
-            // Заменяем только измененный узел, все остальные оставляем как есть
             return oldData.map((node) => {
               if (node.id === patch.id) {
                 return {
@@ -96,7 +95,7 @@ export function useOrgWebSocket() {
         setStatus('disconnected');
         logWS(`WebSocket connection closed (code: ${event.code}). Attempting to reconnect...`);
         
-        // Экспоненциальный backoff для переподключения
+        // Exponential backoff reconnection logic
         const nextDelay = Math.min(reconnectDelayRef.current * 2, maxReconnectDelay);
         reconnectDelayRef.current = nextDelay;
 
@@ -108,7 +107,7 @@ export function useOrgWebSocket() {
       socket.onerror = (error) => {
         if (!isMounted) return;
         logWS('WebSocket error occurred: ' + JSON.stringify(error));
-        // Закрываем сокет, событие onclose автоматически запустит переподключение
+        // Close the socket; the onclose handler will automatically trigger reconnection
         socket.close();
       };
     }
@@ -129,7 +128,7 @@ export function useOrgWebSocket() {
   };
 }
 
-// Вспомогательное красивое логирование сокетов в dev-режиме
+// Formatted console logging for WebSockets in development mode
 function logWS(message: string) {
   if (import.meta.env.DEV) {
     console.log(`%c[WebSocket] ${message}`, 'color: #3b82f6; font-weight: bold;');

@@ -7,7 +7,7 @@ interface TreeViewProps {
   selectedNodeId: string | null;
   onSelectNode: (id: string) => void;
   onToggleNode: (id: string) => void;
-  recentUpdates: { [id: string]: boolean }; // Пропс отслеживания live-обновлений
+  recentUpdates: { [id: string]: boolean };
 }
 
 interface TreeNodeItemProps {
@@ -18,7 +18,6 @@ interface TreeNodeItemProps {
   recentUpdates: { [id: string]: boolean };
 }
 
-// Рекурсивный вспомогательный компонент для рендеринга каждого элемента дерева
 const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
   node,
   selectedNodeId,
@@ -28,9 +27,8 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
 }) => {
   const hasChildren = node.children && node.children.length > 0;
   const isSelected = node.id === selectedNodeId;
-  const isFlashing = recentUpdates[node.id] === true; // Проверяем, изменился ли узел по сокету
+  const isFlashing = recentUpdates[node.id] === true;
 
-  // Динамический выбор класса стиля на основе performance
   let perfStyleClass = styles.perfWarning;
   if (node.performance >= 80) {
     perfStyleClass = styles.perfGood;
@@ -43,24 +41,22 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
   };
 
   const handleArrowClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Исключаем срабатывание клика по всей строке при нажатии на стрелку
+    e.stopPropagation(); // Prevent row selection when clicking the toggle arrow
     onToggleNode(node.id);
   };
 
   return (
     <li className={styles.treeItem}>
-      {/* Добавляем styles.rowFlash, если идет live-обновление */}
       <div
         className={`${styles.nodeRow} ${isSelected ? styles.nodeRowSelected : ''} ${isFlashing ? styles.rowFlash : ''}`}
         onClick={handleRowClick}
       >
-        {/* Кнопка раскрытия ветки (стрелочка) */}
         {hasChildren ? (
           <button
             type="button"
             className={`${styles.expanderArrow} ${node.isExpanded ? styles.arrowExpanded : ''}`}
             onClick={handleArrowClick}
-            aria-label={node.isExpanded ? 'Свернуть' : 'Развернуть'}
+            aria-label={node.isExpanded ? 'Collapse' : 'Expand'}
             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
             ▶
@@ -69,7 +65,6 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
           <div className={styles.noChildrenSpacer} />
         )}
 
-        {/* Название и мета-информация (кол-во людей и перформанс) */}
         <div className={styles.nodeContent}>
           <span className={styles.nodeName}>{node.name}</span>
           <div className={styles.nodeMeta}>
@@ -84,7 +79,6 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
         </div>
       </div>
 
-      {/* Рекурсивный вызов TreeNodeItem для дочерних веток с поддержкой плавной CSS-анимации (Шаг 3 ТЗ) */}
       {hasChildren && (
         <div className={`${styles.childrenWrapper} ${node.isExpanded ? styles.childrenExpanded : ''}`}>
           <ul className={styles.childrenContainer}>
@@ -105,7 +99,6 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
   );
 };
 
-// Экспортируемый основной компонент дерева
 export const TreeView: React.FC<TreeViewProps> = ({
   tree,
   selectedNodeId,

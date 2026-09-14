@@ -5,20 +5,18 @@ import { computeAllAggregates } from '@/utils/aggregation';
 import type { AggregatedMetrics } from '@/utils/aggregation';
 
 /**
- * useAggregatedData — кастомный хук для мемоизированного расчета
- * суммарных показателей орг-структуры компании.
+ * Custom hook for memoized computation of aggregated organizational metrics.
  */
 export function useAggregatedData(flatNodes: OrgNode[] | undefined): { [id: string]: AggregatedMetrics } {
   return useMemo(() => {
     if (!flatNodes || flatNodes.length === 0) return {};
 
-    // Для расчета агрегатов строим дерево.
-    // Нам не важно состояние раскрытия веток UI для математических расчетов,
-    // поэтому передаем пустой Set.
+    // Build tree structure to compute hierarchical aggregations.
+    // UI expansion state does not affect mathematical computations, so pass an empty Set.
     const dummyExpanded = new Set<string>();
     const fullTree = buildTree(flatNodes, dummyExpanded);
 
-    // Рассчитываем и возвращаем карту агрегатов O(N)
+    // Calculate and return the aggregation map in O(N) time complexity.
     return computeAllAggregates(fullTree);
   }, [flatNodes]);
 }

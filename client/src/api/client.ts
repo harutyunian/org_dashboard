@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Динамически вычисляем базовый URL API:
-// В dev-режиме Vite (порт 5173) бьем напрямую в Go-сервер на http://localhost:8080.
-// В продакшене используем относительный путь, чтобы запросы шли через Nginx-прокси.
+// Dynamically compute API base URL:
+// In Vite dev mode (port 5173), direct requests to the Go backend on http://localhost:8080.
+// In production, use a relative path to route requests through the Nginx reverse proxy.
 const getApiBaseUrl = (): string => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
@@ -12,13 +12,13 @@ const getApiBaseUrl = (): string => {
 
 export const apiClient = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 10000, // Таймаут запроса 10 секунд для надежности работы сети
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Интерцептор для логирования ошибок в консоль разработчика (удобно для дебага)
+// Interceptor to log response errors for easier debugging
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {

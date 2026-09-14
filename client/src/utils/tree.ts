@@ -1,8 +1,8 @@
 import type { OrgNode, TreeNode } from '@/api/types';
 
 /**
- * Возвращает дефолтный набор ID узлов, которые должны быть раскрыты при первой загрузке:
- * Корень (parentId == null) и его прямые дочерние элементы — Дивизионы (parentId == 'root').
+ * Returns a default set of node IDs that should be expanded on initial load:
+ * Root (parentId === null) and its immediate children (parentId === 'root').
  */
 export function getDefaultExpandedIds(flatNodes: OrgNode[]): Set<string> {
   const expanded = new Set<string>();
@@ -15,14 +15,14 @@ export function getDefaultExpandedIds(flatNodes: OrgNode[]): Set<string> {
 }
 
 /**
- * Строит иерархическое дерево TreeNode из плоского массива OrgNode за O(N) времени.
- * Состояние раскрытия веток (isExpanded) определяется на основе переданного Set.
+ * Builds a hierarchical tree structure from a flat array of nodes in O(N) time complexity.
+ * Branch expansion state is determined by the provided Set of expanded IDs.
  */
 export function buildTree(flatNodes: OrgNode[], expandedIds: Set<string>): TreeNode[] {
   const map: { [id: string]: TreeNode } = {};
   const roots: TreeNode[] = [];
 
-  // Шаг 1: Инициализируем каждый узел
+  // Initialize lookup map
   flatNodes.forEach((node) => {
     map[node.id] = {
       ...node,
@@ -31,7 +31,7 @@ export function buildTree(flatNodes: OrgNode[], expandedIds: Set<string>): TreeN
     };
   });
 
-  // Шаг 2: Связываем родительские и дочерние элементы
+  // Build tree relationships
   flatNodes.forEach((node) => {
     const currentTreeNode = map[node.id];
     if (node.parentId !== null) {
@@ -39,10 +39,10 @@ export function buildTree(flatNodes: OrgNode[], expandedIds: Set<string>): TreeN
       if (parent) {
         parent.children.push(currentTreeNode);
       } else {
-        roots.push(currentTreeNode); // Относим к корню, если родитель пропал
+        roots.push(currentTreeNode); // Fallback to root if parent is not found
       }
     } else {
-      roots.push(currentTreeNode); // Узел без parentId — корень дерева
+      roots.push(currentTreeNode); // Nodes without a parentId are treated as tree roots
     }
   });
 
@@ -50,8 +50,8 @@ export function buildTree(flatNodes: OrgNode[], expandedIds: Set<string>): TreeN
 }
 
 /**
- * Возвращает массив ID всех предков (родителей вверх по цепочке) для конкретного узла.
- * Используется для автоматического раскрытия веток дерева при выделении из таблицы.
+ * Returns an array of ancestor IDs for a given node.
+ * Used to auto-expand parent branches when selecting nodes from the table.
  */
 export function getAncestors(flatNodes: OrgNode[], nodeId: string): string[] {
   const ancestors: string[] = [];

@@ -2,8 +2,8 @@ import { apiClient } from '@/api/client';
 import type { OrgNode } from '@/api/types';
 
 /**
- * Валидирует структуру ответа API для обеспечения надежности рантайма (Шаг 1 ТЗ).
- * Выбрасывает ошибку при обнаружении невалидных данных.
+ * Validates the API response structure to ensure runtime safety.
+ * Throws an error if any invalid data is detected.
  */
 function validateOrgNodes(data: unknown): OrgNode[] {
   if (!Array.isArray(data)) {
@@ -44,16 +44,15 @@ function validateOrgNodes(data: unknown): OrgNode[] {
   return data as OrgNode[];
 }
 
-// OrgService инкапсулирует логику сетевого взаимодействия для организационной структуры.
+// Service to encapsulate API communication for organizational structure.
 export class OrgService {
   /**
-   * Получает плоский массив узлов орг-структуры с бэкенда.
-   * @param signal AbortSignal для возможности отмены запроса при размонтировании компонента
-   * @returns Массив плоских узлов OrgNode
+   * Fetches the flat organizational structure nodes from the backend.
+   * @param signal AbortSignal to cancel the request on component unmount
+   * @returns Array of flat OrgNode objects
    */
   static async getOrgTree(signal?: AbortSignal): Promise<OrgNode[]> {
     const response = await apiClient.get<unknown>('/api/org-tree', { signal });
-    // Проводим жесткую валидацию схемы ответа перед передачей данных в приложение
     return validateOrgNodes(response.data);
   }
 }

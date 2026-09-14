@@ -8,19 +8,26 @@ export interface ParsedFilter {
 }
 
 /**
- * Парсит строку поиска на естественном языке в структурированные фильтры.
- * Возвращает объект ParsedFilter или null, если структура не распознана (тогда нужен fallback на текстовый поиск).
+ * Parses a natural language search query into a structured filter using Regex.
+ * 
+ * NLP Processing Flow:
+ * - Detects target metrics: budget, performance, or headcount.
+ * - Extracts mathematical operators: >, <, >=, <=, or =.
+ * - Parses numeric values and handles scale multipliers like 'k' (thousand) or 'm' (million).
+ * 
+ * Returns a ParsedFilter object, or null if the pattern is unrecognized (which triggers
+ * a fallback to standard full-text matching on department names).
  */
 export function parseAISearch(query: string): ParsedFilter | null {
   const trimmed = query.trim().toLowerCase();
   if (!trimmed) return null;
 
-  // 1. Регулярные выражения для распознавания категорий
+  // Regular expressions to detect parameters and extract conditional filters
   const budgetRegex = /(бюджет|budget|деньги|money)\s*(>=|<=|>|<|=)\s*(\d+(?:\.\d+)?)\s*(k|к|м|m|тыс|млн)?/i;
   const performanceRegex = /(эффективность|performance|perf|кпд)\s*(>=|<=|>|<|=)\s*(\d+)/i;
   const headcountRegex = /(штат|люди|сотрудники|people|headcount|чел)\s*(>=|<=|>|<|=)\s*(\d+)/i;
 
-  // Функция перевода строковых суффиксов в множители чисел (например, 500k -> 500000)
+  // Converts numeric string scale suffixes (e.g. "500k") to absolute float values
   const parseNumericValue = (valStr: string, suffix?: string): number => {
     const base = parseFloat(valStr);
     if (!suffix) return base;
@@ -34,7 +41,7 @@ export function parseAISearch(query: string): ParsedFilter | null {
     return base;
   };
 
-  // 2. Пробуем сопоставить БЮДЖЕТ
+  // Attempt to match and parse Budget constraints
   const budgetMatch = trimmed.match(budgetRegex);
   if (budgetMatch) {
     const operator = budgetMatch[2] as ParsedFilter['operator'];
@@ -48,7 +55,7 @@ export function parseAISearch(query: string): ParsedFilter | null {
     };
   }
 
-  // 3. Пробуем сопоставить ЭФФЕКТИВНОСТЬ
+  // Attempt to match and parse Performance constraints
   const perfMatch = trimmed.match(performanceRegex);
   if (perfMatch) {
     const operator = perfMatch[2] as ParsedFilter['operator'];
@@ -61,7 +68,7 @@ export function parseAISearch(query: string): ParsedFilter | null {
     };
   }
 
-  // 4. Пробуем сопоставить ЧИСЛЕННОСТЬ ШТАТА
+  // Attempt to match and parse Headcount constraints
   const hcMatch = trimmed.match(headcountRegex);
   if (hcMatch) {
     const operator = hcMatch[2] as ParsedFilter['operator'];
@@ -74,11 +81,11 @@ export function parseAISearch(query: string): ParsedFilter | null {
     };
   }
 
-  return null; // Ничего не подошло, уходим в обычный текстовый поиск
+  return null; // Query did not match any numeric filters; fall back to name search
 }
 
 /**
- * Применяет распарсенный фильтр к конкретной строке таблицы.
+ * Checks if a given aggregated metric record matches the active parsed filter.
  */
 export function applyParsedFilter(item: AggregatedMetrics, filter: ParsedFilter): boolean {
   const itemValue = item[filter.field];
